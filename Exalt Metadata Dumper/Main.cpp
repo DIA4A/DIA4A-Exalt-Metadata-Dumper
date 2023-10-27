@@ -33,6 +33,14 @@ int main()
 {
 	CreateDirectoryA("DIA4A", NULL);
 
+	std::vector<unsigned char> m_pGlobalMetadata = LoadFileBuffer(R"(RotMG Exalt_Data\il2cpp_data\Metadata\global-metadata.dat)");
+	if (m_pGlobalMetadata.empty())
+	{
+		printf("[-] Failed To Find global-metadata.dat, Make Sure The Tool Is In The Right Folder\n");
+		getchar();
+		return 1;
+	}
+
 	PROCESS_INFORMATION m_pProcessInformation;
 	memset(&m_pProcessInformation, 0, sizeof(m_pProcessInformation));
 
@@ -136,9 +144,6 @@ int main()
 		std::vector<int> m_nDecryptedMetadata(m_nIntegerCount);
 		memcpy(m_nDecryptedMetadata.data(), m_pDecryptedMetadataBuffer.data(), m_pDecryptedMetadataBuffer.size());
 
-		// the real metadata header consists of 31 offsets, sizes, and then the version and sanity
-		// since we already know the highest offset appears 3 times, we can just work backwards off it
-
 		int m_nHighestRealOffset = 0;
 		std::map<int, int> m_nOffsetInstances;
 		for (int i = 0; i < m_nIntegerCount; i++)
@@ -153,21 +158,23 @@ int main()
 			}
 		}
 
-		int m_nGuessedSize = 0;
+		// the size of the last offset should be within 4 bytes of the actual "globla-metadata.dat" file size (ty smol/smolplague)
+		int m_nBytesToFileEnd = m_pGlobalMetadata.size() - m_nHighestRealOffset;
+
+		int m_nLastOffsetSize = 0;
 		for (int i = 0; i < m_nIntegerCount; i++)
 		{
-			if (m_nDecryptedMetadata[i] < 7000 || m_nDecryptedMetadata[i] > 11000 || m_nDecryptedMetadata[i] % 4 != 0)
+			if (m_nDecryptedMetadata[i] % 4 != 0 || std::abs(m_nBytesToFileEnd - m_nDecryptedMetadata[i]) > 4)
 			{
 				continue;
 			}
 
-			m_nGuessedSize = m_nDecryptedMetadata[i];
+			m_nLastOffsetSize = m_nDecryptedMetadata[i];
 			break;
 		}
 
 		std::vector<std::pair<int, int>> m_nPairs;
-		// since its unclear what the size of the highest offset is, we'll guess within a range
-		m_nPairs.push_back({ m_nHighestRealOffset, m_nGuessedSize });
+		m_nPairs.push_back({ m_nHighestRealOffset, m_nLastOffsetSize });
 		m_nPairs.push_back({ m_nHighestRealOffset, 0 });
 		m_nPairs.push_back({ m_nHighestRealOffset, 0 });
 
@@ -197,7 +204,8 @@ int main()
 					// m_nDecryptedMetadata[j] = previous offset
 
 					int m_nOffsetDelta = m_nCurrentOffset - m_nDecryptedMetadata[j];
-					if (std::abs(m_nDecryptedMetadata[i] - m_nOffsetDelta) <= 20)
+					// the size compared to the next offset can be up to 4 bytes away, not more though (ty smol/smolplague)
+					if (std::abs(m_nDecryptedMetadata[i] - m_nOffsetDelta) <= 4)
 					{
 						m_nPairs.push_back({ m_nDecryptedMetadata[j], m_nDecryptedMetadata[i] });
 						m_nCurrentOffset = m_nDecryptedMetadata[j];
@@ -237,18 +245,15 @@ int main()
 			fwrite(m_nUnshuffledHeader, 1, sizeof(m_nUnshuffledHeader), m_pUnshuffledMetadataHeaderFile);
 			fclose(m_pUnshuffledMetadataHeaderFile);
 
-			std::vector<unsigned char> m_pGlobalMetadata = LoadFileBuffer(R"(RotMG Exalt_Data\il2cpp_data\Metadata\global-metadata.dat)");
-			if (!m_pGlobalMetadata.empty())
-			{
-				printf("[+] Found global-metadata.dat, Creating \"DIA4A\\global-metadata.dat\" With The Unshuffled Header\n");
 
-				memcpy(m_pGlobalMetadata.data(), m_nUnshuffledHeader, sizeof(m_nUnshuffledHeader));
+			printf("[+] Found global-metadata.dat, Creating \"DIA4A\\global-metadata.dat\" With The Unshuffled Header\n");
 
-				FILE* m_pUnshuffledGlobalMetadataFile = nullptr;
-				fopen_s(&m_pUnshuffledGlobalMetadataFile, "DIA4A\\global-metadata.dat", "wb");
-				fwrite(m_pGlobalMetadata.data(), 1, m_pGlobalMetadata.size(), m_pUnshuffledGlobalMetadataFile);
-				fclose(m_pUnshuffledGlobalMetadataFile);
-			}
+			memcpy(m_pGlobalMetadata.data(), m_nUnshuffledHeader, sizeof(m_nUnshuffledHeader));
+
+			FILE* m_pUnshuffledGlobalMetadataFile = nullptr;
+			fopen_s(&m_pUnshuffledGlobalMetadataFile, "DIA4A\\global-metadata.dat", "wb");
+			fwrite(m_pGlobalMetadata.data(), 1, m_pGlobalMetadata.size(), m_pUnshuffledGlobalMetadataFile);
+			fclose(m_pUnshuffledGlobalMetadataFile);
 		}
 		else
 		{
