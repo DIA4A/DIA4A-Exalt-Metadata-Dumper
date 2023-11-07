@@ -208,7 +208,7 @@ int main()
 
 					int m_nMax = m_nPreviousOffset > m_nPreviousSize ? m_nPreviousOffset : m_nPreviousSize;
 					int m_nMin = m_nPreviousOffset < m_nPreviousSize ? m_nPreviousOffset : m_nPreviousSize;
-					if (m_nPairs.size() == 25 || m_nPairs.size() == 28 || m_nPairs.size() == 29)
+					if (m_nPairs.size() == 25 || m_nPairs.size() == 28 || m_nPairs.size() == 29 || m_nPairs.size() == 30)
 					{
 						m_nPreviousOffset = m_nMin;
 						m_nPreviousSize = m_nMax;
