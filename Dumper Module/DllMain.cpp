@@ -68,7 +68,7 @@ BOOL APIENTRY DllMain(HMODULE m_pModule, DWORD m_dwReason, LPVOID m_pReserved)
 	{
 		DWORD64 m_dwGameAssemblyAddress = (DWORD64)LoadLibraryA("GameAssembly.dll");
 
-		DWORD64 m_dwXXTEADecrypt = FindPattern(m_dwGameAssemblyAddress, "4C 89 4C 24 20 53 56 41 55 41 56 48 83 EC 58 41");
+		DWORD64 m_dwXXTEADecrypt = FindPattern(m_dwGameAssemblyAddress, "4C 89 4C 24 ? 53 55 48 83 EC ? 41");
 		if (m_dwXXTEADecrypt == 0)
 		{
 			MessageBoxA(NULL, "Failed To Find The xxtea Decrypt Function", "Dumper Module", MB_OK);

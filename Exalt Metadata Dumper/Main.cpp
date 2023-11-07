@@ -203,12 +203,27 @@ int main()
 					// m_nDecryptedMetadata[i] = size of previous offset
 					// m_nDecryptedMetadata[j] = previous offset
 
-					int m_nOffsetDelta = m_nCurrentOffset - m_nDecryptedMetadata[j];
-					// the size compared to the next offset can be up to 4 bytes away, not more though (ty smol/smolplague)
-					if (std::abs(m_nDecryptedMetadata[i] - m_nOffsetDelta) <= 4)
+					int m_nPreviousOffset = m_nDecryptedMetadata[j];
+					int m_nPreviousSize = m_nDecryptedMetadata[i];
+
+					int m_nMax = m_nPreviousOffset > m_nPreviousSize ? m_nPreviousOffset : m_nPreviousSize;
+					int m_nMin = m_nPreviousOffset < m_nPreviousSize ? m_nPreviousOffset : m_nPreviousSize;
+					if (m_nPairs.size() == 25 || m_nPairs.size() == 28 || m_nPairs.size() == 29)
 					{
-						m_nPairs.push_back({ m_nDecryptedMetadata[j], m_nDecryptedMetadata[i] });
-						m_nCurrentOffset = m_nDecryptedMetadata[j];
+						m_nPreviousOffset = m_nMin;
+						m_nPreviousSize = m_nMax;
+					}
+					else
+					{
+						m_nPreviousOffset = m_nMax;
+						m_nPreviousSize = m_nMin;
+					}
+
+					int m_nOffsetDelta = m_nCurrentOffset - m_nPreviousOffset;
+					if (std::abs(m_nPreviousSize - m_nOffsetDelta) <= 4)
+					{
+						m_nPairs.push_back({ m_nPreviousOffset, m_nPreviousSize });
+						m_nCurrentOffset = m_nPreviousOffset;
 						m_nOffsetsLeft--;
 
 						m_nDecryptedMetadata[i] = 0;
